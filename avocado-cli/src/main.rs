@@ -64,6 +64,10 @@ enum Commands {
         #[arg(long, default_value_t = false)]
         local: bool,
 
+        /// Project path as seen by the server (daemon mode). Defaults to the current directory.
+        #[arg(long)]
+        project: Option<String>,
+
         /// Token budget
         #[arg(short, long, default_value = "8000")]
         budget: usize,
@@ -366,6 +370,7 @@ async fn main() -> Result<()> {
             query,
             url,
             local,
+            project,
             budget,
             json,
             explain,
@@ -385,10 +390,13 @@ async fn main() -> Result<()> {
 
             // Prefer daemon mode unless --local is set
             if !local {
-                let project = std::env::current_dir()
-                    .unwrap_or_else(|_| PathBuf::from("."))
-                    .canonicalize()
-                    .unwrap_or_else(|_| PathBuf::from("."));
+                let project = match project {
+                    Some(p) => PathBuf::from(p),
+                    None => std::env::current_dir()
+                        .unwrap_or_else(|_| PathBuf::from("."))
+                        .canonicalize()
+                        .unwrap_or_else(|_| PathBuf::from(".")),
+                };
 
                 let client = reqwest::Client::new();
                 let resp = client
